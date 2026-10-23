@@ -1,54 +1,149 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { useRef, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { OnboardingArtwork } from "@/components/onboarding-artwork";
 import { ActionButton, AppScreen, FadeIn, InfoNotice } from "@/components/native-ui";
 import { palette } from "@/lib/design";
-import { ONBOARDING_STORAGE_KEY } from "@/lib/onboarding";
+import { markOnboardingComplete } from "@/lib/onboarding";
+
+const slides = [
+  {
+    label: "THE EMBLEM",
+    title: "The OKBOND ecosystem, in clear view.",
+    body: "A calm, read-only mobile companion for exploring OKBOND public information and Services.",
+  },
+  {
+    label: "DIGITAL ASSETS",
+    title: "Understand the asset landscape.",
+    body: "Explore OKBOND context without connecting a wallet. This app does not show personal holdings or request a signature.",
+  },
+  {
+    label: "CONNECTED ECOSYSTEM",
+    title: "Portfolio, Property, and Services.",
+    body: "Browse available ecosystem information in one place. Details appear only when a real public source is available.",
+  },
+  {
+    label: "ON-CHAIN CONTEXT",
+    title: "Facts before assumptions.",
+    body: "Polygon values are informational reads only. The app does not hold assets, sign, or send transactions.",
+  },
+  {
+    label: "OKBOND · PHASE 1",
+    title: "Ready to explore?",
+    body: "Your OKBOND overview starts here. This version stays read-only, with no account or wallet connection.",
+  },
+] as const;
 
 export default function OnboardingScreen() {
-  const continueToApp = async () => {
-    try {
-      await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, "seen");
-    } catch {
-      // If storage is unavailable, the app can still be explored without saving personal data.
-    }
-    router.replace("/(tabs)");
+  const [current, setCurrent] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const savingRef = useRef(false);
+  const slide = slides[current];
+  const isLast = current === slides.length - 1;
+
+  const moveTo = (next: number) => {
+    setSaveError(false);
+    setCurrent(Math.max(0, Math.min(slides.length - 1, next)));
   };
 
+  const finish = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError(false);
+    try {
+      await markOnboardingComplete(AsyncStorage);
+      router.replace("/(tabs)");
+    } catch {
+      setSaveError(true);
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
+
+  const continueThisSession = () => router.replace("/(tabs)");
+
   return (
-    <AppScreen contentStyle={styles.content}>
-      <FadeIn>
-        <View style={styles.hero}>
-          <Image source={require("../assets/images/icon.png")} style={styles.logo} accessibilityLabel="OKBOND logo" />
-          <Text style={styles.eyebrow}>OKBOND · PHASE 1</Text>
-          <Text style={styles.title}>The ecosystem, in clear view.</Text>
-          <Text style={styles.body}>Explore OKBOND Services, public Polygon contract information, and ecosystem updates in a native mobile experience.</Text>
+    <AppScreen contentStyle={styles.page}>
+      <View style={styles.topbar}>
+        <Text style={styles.topLabel}>OKBOND · INTRODUCTION</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Skip onboarding and open OKBOND Home"
+          accessibilityHint="Saves this introduction as complete on this device"
+          disabled={saving}
+          onPress={() => { void finish(); }}
+          style={({ pressed }) => [styles.skipButton, pressed ? styles.pressed : null, saving ? styles.disabled : null]}
+        >
+          <Text style={styles.skipText}>{saving ? "Saving…" : "Skip"}</Text>
+        </Pressable>
+      </View>
+
+      <View accessibilityLabel={`Screen ${current + 1} of ${slides.length}: ${slide.label}`}>
+        <OnboardingArtwork key={`art-${current}`} index={current} />
+      </View>
+
+      <FadeIn key={`copy-${current}`}>
+        <View style={styles.copy}>
+          <Text style={styles.eyebrow}>{String(current + 1).padStart(2, "0")}  /  {slide.label}</Text>
+          <Text accessibilityRole="header" style={styles.title}>{slide.title}</Text>
+          <Text style={styles.body}>{slide.body}</Text>
         </View>
-        <View style={styles.points}>
-          <Text style={styles.point}><Text style={styles.pointMark}>01  </Text>Public chain reads only</Text>
-          <Text style={styles.point}><Text style={styles.pointMark}>02  </Text>No wallet, login, or personal profile</Text>
-          <Text style={styles.point}><Text style={styles.pointMark}>03  </Text>No purchases, deposits, or claims in app</Text>
-        </View>
-        <InfoNotice title="Informational only">
-          Live values appear only when a verified contract read succeeds. Provider or network errors are shown as unavailable, never as a made-up zero.
-        </InfoNotice>
-        <ActionButton label="Continue to OKBOND" onPress={() => { void continueToApp(); }} icon="arrow-forward-outline" />
-        <Text style={styles.footnote}>This introduction flag is stored locally on this device only.</Text>
       </FadeIn>
+
+      <View accessibilityLabel={`Onboarding progress, step ${current + 1} of ${slides.length}`} style={styles.progressRow}>
+        {slides.map((item, index) => (
+          <View key={item.label} style={[styles.progressTrack, index === current ? styles.progressActive : null]} />
+        ))}
+      </View>
+
+      <Text style={styles.disclosure}>READ-ONLY PHASE 1 · NO ACCOUNT · NO WALLET · NO TRANSACTIONS</Text>
+
+      {saveError ? (
+        <View style={styles.errorBlock}>
+          <InfoNotice title="Could not save onboarding">
+            This device could not store the completion flag. Try again, or continue for this session; the introduction may appear again the next time the app opens.
+          </InfoNotice>
+          <ActionButton label="Continue for this session" onPress={continueThisSession} kind="secondary" icon="arrow-forward-outline" />
+        </View>
+      ) : null}
+
+      <View style={styles.actions}>
+        {current > 0 ? (
+          <ActionButton label="Back" onPress={() => moveTo(current - 1)} kind="secondary" icon="arrow-back-outline" disabled={saving} />
+        ) : null}
+        <ActionButton
+          label={saving ? "Saving…" : isLast ? "Get started" : "Next"}
+          onPress={isLast ? () => { void finish(); } : () => moveTo(current + 1)}
+          icon={isLast ? "checkmark-outline" : "arrow-forward-outline"}
+          disabled={saving}
+        />
+      </View>
+      <Text style={styles.footnote}>Your completion choice is stored locally on this device only.</Text>
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { flexGrow: 1, justifyContent: "center", paddingTop: 28, paddingBottom: 34 },
-  hero: { alignItems: "center", gap: 12, marginBottom: 27 },
-  logo: { width: 114, height: 114, borderRadius: 28, marginBottom: 8 },
-  eyebrow: { color: palette.gold, fontSize: 10, fontWeight: "800", letterSpacing: 2.1 },
-  title: { color: palette.text, fontSize: 31, lineHeight: 37, textAlign: "center", fontWeight: "800", letterSpacing: -0.8, maxWidth: 360 },
-  body: { color: palette.subtle, fontSize: 14, lineHeight: 22, textAlign: "center", maxWidth: 350 },
-  points: { gap: 14, padding: 18, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.line, borderRadius: 18, marginBottom: 16 },
-  point: { color: palette.text, fontSize: 13, fontWeight: "600" },
-  pointMark: { color: palette.gold, fontFamily: "monospace", fontWeight: "800" },
-  footnote: { color: palette.subtle, fontSize: 10, lineHeight: 15, textAlign: "center", marginTop: 12 },
+  page: { flexGrow: 1, paddingTop: 8, paddingBottom: 24, gap: 8 },
+  topbar: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  topLabel: { color: palette.subtle, fontSize: 9, fontWeight: "800", letterSpacing: 1.5 },
+  skipButton: { minWidth: 64, minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 10, borderRadius: 12 },
+  pressed: { backgroundColor: palette.raised },
+  disabled: { opacity: 0.55 },
+  skipText: { color: palette.goldBright, fontSize: 13, fontWeight: "700" },
+  copy: { gap: 9, paddingTop: 1, paddingBottom: 6 },
+  eyebrow: { color: palette.gold, fontSize: 10, fontWeight: "800", letterSpacing: 1.6 },
+  title: { color: palette.text, fontSize: 27, lineHeight: 33, fontWeight: "800", letterSpacing: -0.55, maxWidth: 390 },
+  body: { color: palette.subtle, fontSize: 14, lineHeight: 21, maxWidth: 410 },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 3, marginBottom: 1 },
+  progressTrack: { height: 3, flex: 1, borderRadius: 2, backgroundColor: palette.line },
+  progressActive: { backgroundColor: palette.gold, height: 4 },
+  disclosure: { color: palette.subtle, fontSize: 8, fontWeight: "800", letterSpacing: 0.8, marginTop: 2, marginBottom: 4 },
+  errorBlock: { gap: 10, marginBottom: 4 },
+  actions: { gap: 10, marginTop: 2 },
+  footnote: { color: palette.subtle, fontSize: 10, lineHeight: 15, textAlign: "center", marginTop: 1 },
 });

@@ -4,32 +4,32 @@ import { Alert, Platform, StyleSheet, Text } from "react-native";
 
 import { ActionButton, AppScreen, FadeIn, InfoNotice, PageHeader, SectionHeading, Surface } from "@/components/native-ui";
 import { palette } from "@/lib/design";
-import { ONBOARDING_STORAGE_KEY } from "@/lib/onboarding";
+import { resetOnboarding } from "@/lib/onboarding";
 
-async function replayIntroduction(): Promise<void> {
+async function replayOnboarding(): Promise<void> {
   try {
-    await AsyncStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    await resetOnboarding(AsyncStorage);
     router.replace("/onboarding");
   } catch {
-    Alert.alert("Unavailable", "The local device preference could not be changed.");
+    Alert.alert("Unavailable", "The local onboarding preference could not be changed. Nothing on the website or server was modified.");
   }
 }
 
 export default function SettingsScreen() {
   const resetIntro = () => {
     if (Platform.OS === "web") {
-      if (typeof window !== "undefined" && window.confirm("Replay the introduction? This only removes the local intro-completed flag. It does not clear anything from the website or server.")) {
-        void replayIntroduction();
+      if (typeof window !== "undefined" && window.confirm("Replay onboarding? This only removes the local onboarding-completed flag on this device.")) {
+        void replayOnboarding();
       }
       return;
     }
 
     Alert.alert(
-      "Replay introduction?",
-      "This only removes the local intro-completed flag. It does not clear anything from the website or server.",
+      "Replay onboarding?",
+      "This only removes the local onboarding-completed flag on this device. It does not clear anything from the website or server.",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Replay", onPress: () => { void replayIntroduction(); } },
+        { text: "Replay", onPress: () => { void replayOnboarding(); } },
       ],
     );
   };
@@ -43,12 +43,12 @@ export default function SettingsScreen() {
         </InfoNotice>
         <SectionHeading title="On this device" detail="This preference is kept only in local app storage." />
         <Surface>
-          <Text style={styles.title}>App introduction</Text>
-          <Text style={styles.body}>You can replay the read-only scope and privacy introduction at any time.</Text>
-          <ActionButton label="Replay introduction" onPress={resetIntro} icon="refresh-outline" kind="secondary" />
+          <Text style={styles.title}>Onboarding</Text>
+          <Text style={styles.body}>Replay the five-screen read-only scope and privacy introduction at any time.</Text>
+          <ActionButton label="Replay Onboarding" onPress={resetIntro} icon="refresh-outline" kind="secondary" />
         </Surface>
         <InfoNotice title="Reduced motion" tone="success">
-          Subtle entrance motion follows the operating system accessibility setting. Enable Reduce Motion on your device to disable the entrance animation.
+          Onboarding animations and screen transitions respect the operating system’s reduced-motion setting.
         </InfoNotice>
       </FadeIn>
     </AppScreen>
