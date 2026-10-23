@@ -6,6 +6,7 @@ import { Image, StyleSheet, Text, View } from "react-native";
 import type { AppIconName } from "@/components/native-ui";
 import { useMotionPreference } from "@/hooks/use-reduced-motion";
 import { palette } from "@/lib/design";
+import { OnboardingCardArtwork } from "@/components/onboarding-card-artwork";
 
 const animations = [
   require("../assets/animations/logo-reveal.json"),
@@ -36,25 +37,7 @@ function StaticArtwork({ index }: { index: number }) {
     );
   }
 
-  if (index === 1) {
-    return (
-      <View style={styles.walletStage}>
-        <View style={styles.walletCard}>
-          <View style={styles.walletHeader}>
-            <View style={styles.walletChip} />
-            <Text style={styles.walletBrand}>OKBOND</Text>
-          </View>
-          <View>
-            <Text style={styles.walletKicker}>ASSET OVERVIEW</Text>
-            <Text style={styles.walletFooter}>PUBLIC INFORMATION · READ ONLY</Text>
-          </View>
-        </View>
-        <View style={styles.token}>
-          <Text style={styles.tokenMark}>OB</Text>
-        </View>
-      </View>
-    );
-  }
+  if (index === 1) return <OnboardingCardArtwork />;
 
   if (index === 2) {
     return (
@@ -98,6 +81,7 @@ export function OnboardingArtwork({ index }: { index: number }) {
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
+      {index === 1 ? <StaticArtwork index={index} /> : null}
       {!animationFailed ? (
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           <LottieView
@@ -114,7 +98,7 @@ export function OnboardingArtwork({ index }: { index: number }) {
           />
         </View>
       ) : null}
-      <StaticArtwork index={index} />
+      {index !== 1 ? <StaticArtwork index={index} /> : null}
     </View>
   );
 }
@@ -157,46 +141,6 @@ const styles = StyleSheet.create({
     borderColor: `${palette.gold}66`,
   },
   emblem: { width: 130, height: 130, borderRadius: 65 },
-  walletStage: { width: 280, height: 174, justifyContent: "center", position: "relative" },
-  walletCard: {
-    width: 254,
-    height: 150,
-    alignSelf: "center",
-    justifyContent: "space-between",
-    padding: 17,
-    borderWidth: 1,
-    borderColor: `${palette.gold}A0`,
-    borderRadius: 19,
-    backgroundColor: "#121211",
-    transform: [{ rotate: "-7deg" }],
-    shadowColor: palette.gold,
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 5,
-  },
-  walletHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  walletChip: { width: 29, height: 21, borderRadius: 5, borderWidth: 1, borderColor: palette.gold, backgroundColor: "#302718" },
-  walletBrand: { color: palette.goldBright, fontSize: 10, fontWeight: "800", letterSpacing: 2 },
-  walletKicker: { color: palette.text, fontSize: 13, fontWeight: "800", letterSpacing: 1.1 },
-  walletFooter: { color: palette.subtle, fontSize: 8, fontWeight: "700", letterSpacing: 1.1, marginTop: 5 },
-  token: {
-    position: "absolute",
-    right: 5,
-    top: 2,
-    width: 61,
-    height: 61,
-    borderRadius: 31,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: palette.goldBright,
-    backgroundColor: "#2C2416",
-    shadowColor: palette.gold,
-    shadowOpacity: 0.4,
-    shadowRadius: 11,
-    elevation: 8,
-  },
-  tokenMark: { color: palette.goldBright, fontSize: 17, fontWeight: "900", letterSpacing: 1 },
   ecosystemStage: { width: 284, height: 204, alignItems: "center", justifyContent: "space-between", paddingVertical: 8 },
   ecoTop: { zIndex: 2 },
   ecoBottom: { zIndex: 2, width: "100%", flexDirection: "row", justifyContent: "space-between" },

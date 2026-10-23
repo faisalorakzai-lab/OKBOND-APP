@@ -57,6 +57,27 @@ describe("OKBOND first-launch onboarding", () => {
   });
 });
 
+describe("screen two OKBOND card artwork", () => {
+  const cardArtwork = readFileSync(join(process.cwd(), "components", "onboarding-card-artwork.tsx"), "utf8");
+  const sceneArtwork = readFileSync(join(process.cwd(), "components", "onboarding-artwork.tsx"), "utf8");
+  const walletAnimation = JSON.parse(readFileSync(join(process.cwd(), "assets", "animations", "wallet-token.json"), "utf8")) as {
+    layers: Array<{ nm: string; ks: { p: { k: Array<{ s: number[] }> } } }>;
+  };
+
+  it("uses the real bundled emblem and factual read-only copy without copied payment credentials", () => {
+    expect(cardArtwork).toContain('require("../assets/images/onboarding-emblem.jpg")');
+    expect(cardArtwork).toContain("PUBLIC DATA · READ ONLY");
+    expect(cardArtwork).toContain("NO WALLET LINKED");
+    expect(cardArtwork).not.toMatch(/5218|FAISAL ORAKZAI|VISA|INFINITE/i);
+    expect(sceneArtwork).toContain("if (index === 1) return <OnboardingCardArtwork />");
+  });
+
+  it("centers the restrained gold halo on the card emblem", () => {
+    expect(walletAnimation.layers[0].nm).toBe("OKBOND emblem orbit");
+    expect(walletAnimation.layers[0].ks.p.k[0].s).toEqual([256, 205, 0]);
+  });
+});
+
 describe("bundled onboarding animation assets", () => {
   const animationDir = join(process.cwd(), "assets", "animations");
   const animationFiles = readdirSync(animationDir).filter((name) => name.endsWith(".json")).sort();

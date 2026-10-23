@@ -33,13 +33,13 @@
 ## 5. Quality and handoff to the requested GitHub repository
 - [x] Run the available app type check, lint, tests, and build; test the app on Android and iOS simulators or available preview environments and report which execution surfaces were actually verified.
   - Prior Phase 1 verification in this Sandbox: TypeScript (`pnpm check`), Expo lint (`pnpm lint`), Vitest (`31 passed`, one existing auth logout test skipped), Expo Web static export, and HTTP 200/nonempty content for `/`, `/onboarding`, `/portfolio`, `/services`, `/staking`, `/lottery`, `/vault`, `/governance`, `/settings`, `/help`, and `/more`. Native iOS/Android EAS signing/builds were not run.
-  - Onboarding follow-up verification: `pnpm check` and `pnpm lint` passed; Vitest reported 38 passed and one existing logout test skipped; Expo Web export succeeded with 19 routes. Preview verified all five onboarding screens, Back/Next, Skip, saved completion after a root reload, and Settings replay.
+  - Onboarding follow-up verification: `pnpm check` and `pnpm lint` passed; the final Vitest run reported 40 passed and one existing logout test skipped (9 onboarding tests); Expo Web export succeeded with 19 routes. The available Preview exercised all five screens, Back/Next, Skip, saved completion after root reload, Settings replay, and the refined screen-two card.
 - [x] Ensure the existing website continues to build and function without changing its source, branch, or live deployment.
   - Existing website checkout remained clean on `main` at commit `9ea5083`; mobile code is in a different workspace.
 - [x] Report what is actually implemented, credentials still needed, and anything blocked by legal or app-store policy review.
-- [x] When the app work is complete, push the app code to the exact requested destination `https://github.com/faisalorakzai-lab/OKBOND-APP` while preserving the separate Manus-managed canonical repository. Inspect the target first, do not overwrite pre-existing unrelated content, never force-push/rewrite history, and exclude `.env`, secrets, and temporary credentials. If target history/access prevents a safe push, stop and report the blocker.
+- [ ] When the app work is complete, push the app code to the exact requested destination `https://github.com/faisalorakzai-lab/OKBOND-APP` while preserving the separate Manus-managed canonical repository. Inspect the target first, do not overwrite pre-existing unrelated content, never force-push/rewrite history, and exclude `.env`, secrets, and temporary credentials. If target history/access prevents a safe push, stop and report the blocker.
   - Prior Phase 1 handoff: app commit `75f8a0c` was pushed without force to `main`; subsequent handoff commit `21f4030` updated the repository checklist.
-  - Onboarding implementation and report were pushed without force to GitHub `main` at `dc5e511be02df54b014e2ac79aa62ed8dd8e54c2`; existing repository history was preserved, the Manus-managed repository remains canonical, and the staged changes contained no credential-pattern matches.
+  - Previous onboarding implementation and report were pushed without force to GitHub `main` at `dc5e511be02df54b014e2ac79aa62ed8dd8e54c2`; this new screen-two card refinement is awaiting its own final fast-forward push.
 
 ## 6. Verified contract coverage and truthful disclosures
 - [x] Only use addresses and view methods supported by the exact-match Polygon deployment manifest and verified source. The manifest does not list a verified Staking deployment or Governance contract/route; do not copy the old website's hardcoded staking address or show unverified staking metrics/APY. Staking and Governance must clearly say that no verified deployment/data source is configured.
@@ -53,7 +53,11 @@
   - Prefer optimized Lottie animations for suitable scenes and lightweight native animation for transitions; use pre-rendered 3D only where meaningful, and keep the experience performant on ordinary Android devices.
   - Lazy-load or mount only the active animation; preserve OS reduced-motion and accessible-control behavior.
   - Optimize animation/image dimensions and bundled asset sizes; keep the five visuals distinct and local/offline.
-  - Evidence: five local Lottie scenes total 13,088 bytes plus a compressed 512×512 emblem; Preview rendered a Lottie canvas at 390×844 and all five distinct scenes were exercised.
+  - [x] On onboarding screen 2, replace the generic mini-card with a premium matte-black-and-gold card-style visual inspired by the supplied image, using the existing official OKBOND logo asset.
+    - Keep it a truthful, read-only illustration until an actual card product is approved: do not reproduce the reference's cardholder name, card number, expiry, Visa/network marks, or payment credentials, and do not imply that the app issues or supports a payment card.
+    - Preserve portrait readability, local assets, reduced-motion behavior, and the existing Next/Skip navigation.
+    - Evidence: `components/onboarding-card-artwork.tsx` uses scalable SVG gradients and the existing `assets/images/onboarding-emblem.jpg`, with no new raster/3D asset or package. The card shows only `PUBLIC DATA · READ ONLY` and `NO WALLET LINKED`; the local Lottie halo is centered on the genuine emblem. Interactive Preview reached screen 2 and confirmed the copy and artwork.
+  - Evidence: five local Lottie scenes total 13,101 bytes plus the reused 512×512, 65,615-byte emblem derivative; all new animation/image assets total 78,716 bytes (76.9 KiB). A 390×844 Preview screenshot verified the mobile onboarding layout; an interactive Preview verified the new screen-two card. Assets remain local/offline.
 
 ## 8. First-launch, skip, completion, and replay behavior
 - [x] Show onboarding once on a fresh install; provide Back and Next actions, allow Skip, save completion, and provide a final Get Started action.
@@ -67,4 +71,4 @@
 - [x] Run the available app checks and verify the complete onboarding sequence, skip path, saved-completion restart behavior, and Settings replay in an available preview/device environment.
   - Report which animation library was actually used, the number and source of animation assets, their total file size, and the actual build/preview status. Distinguish Expo Web checks from Android/iOS native builds; do not claim a native build unless it ran successfully.
   - Do not modify the website or smart contracts.
-  - Evidence: TypeScript and lint passed; 38 tests passed with one existing logout test skipped; Expo Web export succeeded with 19 static routes. All source changes are confined to the mobile workspace. Android/iOS release builds were not run.
+  - Evidence: final `pnpm check`, `pnpm lint`, and tests passed (40 passed, 1 existing skip); Expo Web export succeeded with 19 static routes (3.5 MB JS bundle). Preview confirmed screen two and the existing first-launch/replay behavior. Android/iOS release builds were not run.
