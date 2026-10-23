@@ -58,7 +58,10 @@ export default function AuthScreen() {
         : await supabase.auth.signUp({
             email: email.trim().toLowerCase(),
             password,
-            options: { data: { name: email.trim().split("@")[0], referred_by_code: normalizedReferral ?? null } },
+            options: {
+              emailRedirectTo: process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL ?? "https://orakzaibond.com/auth",
+              data: { name: email.trim().split("@")[0], referred_by_code: normalizedReferral ?? null },
+            },
           });
       if (result.error) throw result.error;
       if (!result.data.user) throw new Error("Supabase did not return a user account.");
@@ -86,8 +89,8 @@ export default function AuthScreen() {
     setError(null); setMessage(null); setBusy(true);
     try {
       if (Platform.OS !== "web") {
-        open({ view: "Connect" });
-        setMessage("Choose a wallet. OKBOND supports multichain WalletConnect connections.");
+        open({ view: "AllWallets" } as never);
+        setMessage("Choose any supported wallet. If it is installed, OKBOND will connect; otherwise you can close this screen.");
       } else {
         try {
           const wallet = await connectBrowserWallet();
