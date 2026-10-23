@@ -19,6 +19,7 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 import { useMotionPreference } from "@/hooks/use-reduced-motion";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { WalletProvider } from "@/components/appkit-provider";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -62,6 +63,7 @@ export default function RootLayout() {
 
   const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <WalletProvider>
       <QueryClientProvider client={queryClient}>
         <Stack screenOptions={{ headerShown: false, animation: motion === "full" ? "fade" : "none" }}>
           <Stack.Screen name="index" />
@@ -78,6 +80,7 @@ export default function RootLayout() {
         </Stack>
         <StatusBar style="light" />
       </QueryClientProvider>
+      </WalletProvider>
     </GestureHandlerRootView>
   );
 

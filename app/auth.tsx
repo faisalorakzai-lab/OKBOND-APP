@@ -12,6 +12,7 @@ import { isTestnetPreviewEnabled, TESTNET_PREVIEW_USER } from "@/lib/testnet";
 import * as Auth from "@/lib/_core/auth";
 import { supabase, toAuthUser } from "@/lib/supabase";
 import { connectBrowserWallet } from "@/lib/wallet";
+import { useMultichainWallet } from "@/lib/use-multichain-wallet";
 
 type Mode = "login" | "signup";
 type Method = "email" | "phone";
@@ -20,6 +21,7 @@ const LEGAL_URL = "https://orakzaibond.com/legal";
 function isValidEmail(email: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()); }
 
 export default function AuthScreen() {
+  const { open, address: connectedAccountAddress } = useMultichainWallet();
   const [mode, setMode] = useState<Mode>("login");
   const [method, setMethod] = useState<Method>("email");
   const [email, setEmail] = useState("");
@@ -33,6 +35,7 @@ export default function AuthScreen() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   useEffect(() => { void getReferralCode().then((value) => { if (value) setReferral(value); }); }, []);
+  const connectedWalletAddress = connectedAccountAddress ?? walletAddress;
   const title = useMemo(() => mode === "login" ? "Welcome back" : "Create your account", [mode]);
   const switchMode = (next: Mode) => { setError(null); setMessage(null); setMode(next); };
 
@@ -82,9 +85,20 @@ export default function AuthScreen() {
   const continueWithWallet = async () => {
     setError(null); setMessage(null); setBusy(true);
     try {
-      const wallet = await connectBrowserWallet();
-      setWalletAddress(wallet.address);
-      setMessage(`Wallet connected on Polygon: ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}. Wallet sign-in will be enabled after server-side signature verification is configured.`);
+      if (Platform.OS !== "web") {
+        open({ view: "Connect" });
+        setMessage("Choose a wallet. OKBOND supports multichain WalletConnect connections.");
+      } else {
+        try {
+          const wallet = await connectBrowserWallet();
+          setWalletAddress(wallet.address);
+          setMessage(`Wallet connected on ${wallet.chainId}: ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}. Wallet sign-in will be enabled after server-side signature verification is configured.`);
+        } catch (browserError) {
+          if (browserError instanceof Error && browserError.message.startsWith("No browser wallet")) {
+            setError("Install MetaMask or open OKBOND inside Trust Wallet's in-app browser to connect a multichain wallet.");
+          } else throw browserError;
+        }
+      }
     } catch (err) { setError(err instanceof Error ? err.message : "Could not connect the wallet."); }
     finally { setBusy(false); }
   };
@@ -122,7 +136,7 @@ export default function AuthScreen() {
           {error ? <InfoNotice title="Check your details" tone="warning">{error}</InfoNotice> : null}
           {message ? <InfoNotice title="Preview status" tone="info">{message}</InfoNotice> : null}
           <Pressable accessibilityRole="button" onPress={() => { void submit(); }} style={({ pressed }) => [styles.submit, pressed ? styles.pressed : null]}><Text style={styles.submitText}>{mode === "login" ? "Log in" : "Create account"}</Text><Ionicons name="arrow-forward-outline" size={18} color={palette.canvas} /></Pressable>
-          <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void continueWithWallet(); }} style={[styles.walletButton, busy ? styles.disabled : null]}><Ionicons name="wallet-outline" size={18} color={palette.gold} /><Text style={styles.walletText}>{walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : "Continue with wallet"}</Text></Pressable>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void continueWithWallet(); }} style={[styles.walletButton, busy ? styles.disabled : null]}><Ionicons name="wallet-outline" size={18} color={palette.gold} /><Text style={styles.walletText}>{connectedWalletAddress ? `${connectedWalletAddress.slice(0, 6)}…${connectedWalletAddress.slice(-4)}` : "Continue with wallet"}</Text></Pressable>
         </View>
 
         {isTestnetPreviewEnabled() ? <View style={styles.testnetCard}><View style={styles.testnetIcon}><Ionicons name="flask-outline" size={18} color={palette.goldBright} /></View><View style={styles.testnetCopy}><Text style={styles.testnetTitle}>Testnet Preview Account</Text><Text style={styles.testnetDetail}>{TESTNET_PREVIEW_USER.email} · Home Screen review only</Text></View><Pressable accessibilityRole="button" onPress={() => { void startTestnetPreview(); }} style={styles.testnetButton}><Text style={styles.testnetButtonText}>Open</Text></Pressable></View> : null}

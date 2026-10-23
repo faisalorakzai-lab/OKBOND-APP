@@ -37,3 +37,9 @@ Full wallet-based account sign-in still requires server-side SIWE signature veri
 - Expo Web export: passed
 - Supabase migrations: applied successfully
 - No service-role key was placed in the client bundle
+
+## Multichain WalletConnect update
+
+The native app now uses Reown AppKit with the supplied project ID and a platform-safe provider boundary. Wallet selection supports WalletConnect deep links and native wallet apps such as MetaMask and Trust Wallet. The configured EVM network selector includes Ethereum, Polygon, BNB Smart Chain, Arbitrum One, Optimism, Base, and Avalanche C-Chain; the user is not forced onto Polygon.
+
+The web export keeps the injected-provider path safe for static rendering. Web users can connect MetaMask or Trust Wallet's in-app browser without loading native WalletConnect code during SSR. TypeScript, lint, tests, and Expo Web export all pass after the multichain update.
