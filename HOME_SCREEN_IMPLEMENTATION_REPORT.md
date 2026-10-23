@@ -1,52 +1,27 @@
-# OKBOND Mobile — Premium Home Screen Report
+# OKBOND Home Screen Implementation Report
 
-**Date:** 2026-10-23  
-**Scope:** Premium OKBOND Home Screen redesign based on the supplied requirements and Trust Wallet / BePay Money style references, without copying their branding or proprietary assets.
+## Current implementation
 
-## Implemented
+The existing mobile app Home route was updated in place without rebuilding onboarding, authentication, backend, or navigation. The Home now follows the requested first-fold order: OKBOND header, portfolio card, Send/Receive/Buy Crypto/Swap quick actions, compact five-slide OKBOND carousel, Explore OKBOND shortcuts, verified ecosystem content, recent activity, Polygon read status, and fixed five-tab navigation.
 
-The authenticated Home screen now uses OKBOND's existing emblem, obsidian-black surfaces, charcoal cards, restrained metallic gold accents, readable white text, and accessible rounded controls. The composition is original and mobile-first.
+The portfolio card uses an honest disconnected state. It shows Total Portfolio Balance, protected visibility toggle, refresh action, available/staked/24-hour status, and Connect Wallet / Explore Services CTAs. No fabricated balance, profit, transaction, property listing, market price, payment success, or reward payout is shown.
 
-The top area contains the OKBOND logo and wordmark, actual Polygon Chain 137 indicator, notification control, and profile avatar derived from the authenticated user's name when available. It never invents a user name.
+Explore OKBOND shortcuts now cover Crypto Wallet, My Assets, Staking, Property, and Travel. Their current labels communicate setup or coming-soon boundaries rather than implying that unconfigured providers are live. Existing routes remain connected for Services, Portfolio/Markets, Activity, Profile, and Settings.
 
-The welcome section uses the requested messaging and personalizes the greeting only when the authenticated session returns a name. The portfolio card includes a show/hide control, refresh control, USD label, available/staked/pending breakdown, and wallet connection state. Since the current mobile project has no production mobile wallet adapter, the card correctly shows an empty/unavailable state instead of a fake balance.
+## Five-slide carousel
 
-Quick actions include Send, Receive, Buy Crypto, and Swap. Each action has an accessible button and a clear configuration-pending message. No simulated transaction or success response exists.
+The compact banner carousel rotates automatically every three seconds and supports five accessible dot controls. Slides communicate OKBOND ecosystem trust, Polygon public reads, secure access, services, and the next product chapter. It uses original OKBOND branding and copy rather than copying Trust Wallet or BePay assets.
 
-The My Assets section displays the configured OKBOND token contract and public Polygon supply when the existing verified read succeeds. It explicitly labels this as public contract data and not the user's personal wallet balance. Loading, unavailable, and retry states use the existing Polygon read hook.
+## Real-data boundaries
 
-Explore OKBOND links to real existing routes for Vault, Staking, Governance, and Services. Staking and Governance are visibly marked as coming soon/not configured where their verified deployment or data source is absent.
-
-Recent activity has a real empty state and a separate Activity tab. The app does not fabricate pending, confirmed, failed, profit, or transaction history data.
-
-The bottom navigation was adapted to: **Home, Markets, Activity, Services, Profile**. Existing Portfolio remains the Markets route, existing More remains the Profile route, and existing Staking remains reachable from the Home ecosystem card without breaking the prior route architecture.
-
-## Data sources and boundaries
-
-The Home screen reuses the existing authenticated session hook, existing Polygon read-only summary hook, and verified contract manifest. The website repository's Supabase client was inspected. Its currently visible mobile-relevant data is profile/social/referral data, not a verified personal portfolio, transaction history, or market-pricing source. Therefore no Supabase data was copied into a financial balance card and no Supabase secret was added to the mobile client.
-
-Personal balances, prices, 24-hour change, wallet transactions, send, receive, swap, buy, and activity remain unavailable until the corresponding secure production integrations are connected. The UI shows honest setup states rather than demo content.
+Public Polygon read status and verified contract data continue to use the existing read-only data hooks. Personal wallet balances and transaction actions remain unavailable until the wallet/provider configuration is completed. Services such as property, travel, payments, rewards, governance, and marketplace remain honest setup/coming-soon states unless an existing verified module is available.
 
 ## Validation
 
-- `pnpm check` — passed
-- `pnpm lint` — passed
-- `pnpm test -- --run` — 40 passed, 1 existing auth logout test skipped
-- Expo Web export — passed after the Home and Activity navigation update; `/activity` and all existing routes exported
-- Native iOS/Android signed builds — not run in Sandbox
+TypeScript check passed. Expo lint passed. Vitest passed with 40 tests passed and 1 existing auth logout test skipped. Expo Web export passed. Live preview verified the single portfolio card, Send/Receive/Buy Crypto/Swap actions, five carousel controls, Explore OKBOND shortcuts, and fixed Home/Markets/Activity/Services/Profile navigation.
 
 ## Files
 
-- `app/(tabs)/index.tsx` — premium Home Screen
+- `app/(tabs)/index.tsx` — premium requirements-aligned Home Screen
 - `app/(tabs)/activity.tsx` — real empty Activity screen
 - `app/(tabs)/_layout.tsx` — Home / Markets / Activity / Services / Profile navigation
-
-The existing website repository and Vercel production deployment were not changed.
-
-## Reference-alignment update
-
-The Home composition was refined after the supplied wallet reference: it now uses a compact OKBOND header, a gold ecosystem promo banner, profile/balance row with notification, QR, and activity controls, four large Fund/Send/Swap/Earn tiles, Services/Assets/NFT strip, horizontal service cards, a branded verified-ecosystem promo card, and the fixed Home/Markets/Activity/Services/Profile navigation. The layout is inspired by the reference's information hierarchy but uses original OKBOND copy, logo, colors, and icons.
-
-## Premium carousel update
-
-The top ecosystem banner is now a five-slide carousel. Slides rotate automatically every three seconds, expose five accessible dot controls, and support direct slide selection. The five original OKBOND messages cover ecosystem trust, Polygon public reads, secure access, services, and the next product chapter. Each slide has its own tone, icon treatment, kicker, headline, body copy, and restrained gold/graphite visual system.
