@@ -1,27 +1,33 @@
-# OKBOND Home Screen Implementation Report
+# OKBOND — Luxury Fintech Home Screen Report
 
-## Current implementation
+## Implemented
 
-The existing mobile app Home route was updated in place without rebuilding onboarding, authentication, backend, or navigation. The Home now follows the requested first-fold order: OKBOND header, portfolio card, Send/Receive/Buy Crypto/Swap quick actions, compact five-slide OKBOND carousel, Explore OKBOND shortcuts, verified ecosystem content, recent activity, Polygon read status, and fixed five-tab navigation.
+The Home Screen was redesigned from the ground up at the UI/UX level while preserving the existing authentication, backend hooks, routes, Polygon read-only data and five-tab navigation. The new hierarchy is intentionally minimal: compact OKBOND header, personalized greeting, focused portfolio card, compact Send/Receive/Buy/Swap action row, grouped ecosystem list, minimal assets row, recent activity empty state, and live Polygon status.
 
-The portfolio card uses an honest disconnected state. It shows Total Portfolio Balance, protected visibility toggle, refresh action, available/staked/24-hour status, and Connect Wallet / Explore Services CTAs. No fabricated balance, profit, transaction, property listing, market price, payment success, or reward payout is shown.
+The previous oversized carousel, repeated portfolio cards, crowded service tiles, duplicated headings and excessive gold surfaces were removed from the Home experience. The five-slide promotional carousel is no longer used on Home because the latest product direction explicitly prioritizes calm luxury, compact hierarchy and minimal distraction.
 
-Explore OKBOND shortcuts now cover Crypto Wallet, My Assets, Staking, Property, and Travel. Their current labels communicate setup or coming-soon boundaries rather than implying that unconfigured providers are live. Existing routes remain connected for Services, Portfolio/Markets, Activity, Profile, and Settings.
+The portfolio card is the primary focal point. It includes balance visibility, refresh, disconnected-wallet status, available/staked/24-hour states, a restrained Connect Wallet CTA, and the message “Your financial world starts here”. It never displays fabricated balances, performance, prices or transactions.
 
-## Five-slide carousel
+The new “Your OKBOND Ecosystem” section groups the most relevant services into aligned rows: Digital Assets, Wealth & Vault, Real Estate, and Travel & Transport. The full catalog remains reachable through the existing Services route. My Assets is presented as a minimal token row using the existing verified Polygon contract/read hook, with public-supply labeling and honest loading state. Recent Activity uses a compact new-user empty state and the existing Activity route.
 
-The compact banner carousel rotates automatically every three seconds and supports five accessible dot controls. Slides communicate OKBOND ecosystem trust, Polygon public reads, secure access, services, and the next product chapter. It uses original OKBOND branding and copy rather than copying Trust Wallet or BePay assets.
+## Visual direction
 
-## Real-data boundaries
+The implementation uses obsidian surfaces, graphite separators, ivory text, muted stone-grey secondary copy, and small intentional gold accents. It removes decorative circles, heavy gradients, giant hero areas, repeated gold cards, excessive borders and mixed icon treatments. Typography, spacing, touch targets and row alignment are designed for a calm premium fintech feel across narrow mobile widths.
 
-Public Polygon read status and verified contract data continue to use the existing read-only data hooks. Personal wallet balances and transaction actions remain unavailable until the wallet/provider configuration is completed. Services such as property, travel, payments, rewards, governance, and marketplace remain honest setup/coming-soon states unless an existing verified module is available.
+## Live verification
+
+The live preview was opened through the Testnet Preview Account. The rendered Home verified the new greeting, single portfolio card, four compact actions, four grouped ecosystem rows, minimal OKBOND asset row, refined activity empty state, Polygon read status, and Home/Markets/Activity/Services/Profile navigation.
 
 ## Validation
 
-TypeScript check passed. Expo lint passed. Vitest passed with 40 tests passed and 1 existing auth logout test skipped. Expo Web export passed. Live preview verified the single portfolio card, Send/Receive/Buy Crypto/Swap actions, five carousel controls, Explore OKBOND shortcuts, and fixed Home/Markets/Activity/Services/Profile navigation.
+- TypeScript check: passed
+- Expo lint: passed
+- Vitest: 40 passed, 1 existing auth logout test skipped
+- Expo Web export: passed
+- Live disconnected/testnet preview: verified
+- No website or unrelated screens modified
+- No fake financial data or simulated transaction success added
 
-## Files
+## Remaining production configuration
 
-- `app/(tabs)/index.tsx` — premium requirements-aligned Home Screen
-- `app/(tabs)/activity.tsx` — real empty Activity screen
-- `app/(tabs)/_layout.tsx` — Home / Markets / Activity / Services / Profile navigation
+Wallet connection, personal balances, Send/Receive signing, Buy Crypto, Swap routes, payment providers, property listings, travel providers, rewards and marketplace data still require their secure production integrations. Until configured, the UI shows setup, unavailable or empty states.
