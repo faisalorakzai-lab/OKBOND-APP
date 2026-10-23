@@ -6,12 +6,14 @@ import { Image, StyleSheet, Text, View } from "react-native";
 import { ActionButton, AppScreen, InfoNotice } from "@/components/native-ui";
 import { palette } from "@/lib/design";
 import { resolveLaunchDestination, type LaunchDestination } from "@/lib/onboarding";
+import { useAuth } from "@/hooks/use-auth";
 
 type LaunchState = "loading" | LaunchDestination | "error";
 
 export default function IndexRoute() {
   const [destination, setDestination] = useState<LaunchState>("loading");
   const [retryCount, setRetryCount] = useState(0);
+  const auth = useAuth();
 
   useEffect(() => {
     let active = true;
@@ -21,7 +23,8 @@ export default function IndexRoute() {
     return () => { active = false; };
   }, [retryCount]);
 
-  if (destination === "app") return <Redirect href="/(tabs)" />;
+  if (destination === "auth" && !auth.loading && auth.isAuthenticated) return <Redirect href="/(tabs)" />;
+  if (destination === "auth" && !auth.loading) return <Redirect href="/auth" />;
   if (destination === "onboarding") return <Redirect href="/onboarding" />;
 
   return (
@@ -37,7 +40,7 @@ export default function IndexRoute() {
             Your saved onboarding choice could not be read, so the app has not shown the introduction or changed your stored preference. Retry, or open Home for this session only.
           </InfoNotice>
           <ActionButton label="Retry local check" onPress={() => { setDestination("loading"); setRetryCount((count) => count + 1); }} icon="refresh-outline" />
-          <ActionButton label="Open Home for this session" onPress={() => router.replace("/(tabs)")} kind="secondary" icon="arrow-forward-outline" />
+          <ActionButton label="Open Login for this session" onPress={() => router.replace("/auth")} kind="secondary" icon="arrow-forward-outline" />
         </View>
       ) : null}
     </AppScreen>

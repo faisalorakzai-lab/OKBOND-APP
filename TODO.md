@@ -73,3 +73,11 @@
   - Report which animation library was actually used, the number and source of animation assets, their total file size, and the actual build/preview status. Distinguish Expo Web checks from Android/iOS native builds; do not claim a native build unless it ran successfully.
   - Do not modify the website or smart contracts.
   - Evidence: final `pnpm check`, `pnpm lint`, and tests passed (40 passed, 1 existing skip); Expo Web export succeeded with 19 static routes (3.5 MB JS bundle). Preview confirmed screen two and the existing first-launch/replay behavior. Android/iOS release builds were not run.
+
+## 10. Authentication and referral foundation — follow-up scope
+- [x] Preserve onboarding completion separately from authentication and route fresh installs through five-screen onboarding → `/auth`; route valid existing sessions to protected tabs; redirect unauthenticated/expired sessions back to `/auth`.
+- [x] Deliver a premium obsidian-black/metallic-gold auth surface with actual bundled OKBOND logo, Log In/Create Account modes, accessible controls, password visibility, validation, loading/error states, legal link, Google/portal launch, phone OTP UI, wallet UI, forgot-password messaging, and sign-out.
+- [x] Add OAuth callback/deep-link route that exchanges a configured authorization code for a server session, stores the native session in SecureStore, and never embeds provider secrets.
+- [x] Retain an optional referral code while moving between onboarding and auth. Do not claim validation, attribution, rewards, counts, commissions, or payouts from client-side entry.
+- [ ] Connect production email/password authentication, email verification, password reset, phone OTP, Google provider credentials, WalletConnect + server-verified SIWE nonce flow, server-side referral validation, rate limiting, and account deletion. These remain pending until the owner supplies/activates the secure backend/provider configuration.
+- [ ] Complete native iOS/Android EAS builds and store review. No store submission or production auth deployment was performed by this task.

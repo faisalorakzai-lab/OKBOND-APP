@@ -56,7 +56,7 @@ export default function OnboardingScreen() {
     setSaveError(false);
     try {
       await markOnboardingComplete(AsyncStorage);
-      router.replace("/(tabs)");
+      router.replace("/auth");
     } catch {
       setSaveError(true);
       savingRef.current = false;
@@ -64,7 +64,7 @@ export default function OnboardingScreen() {
     }
   };
 
-  const continueThisSession = () => router.replace("/(tabs)");
+  const continueThisSession = () => router.replace("/auth");
 
   return (
     <AppScreen contentStyle={styles.page}>
@@ -72,7 +72,7 @@ export default function OnboardingScreen() {
         <Text style={styles.topLabel}>OKBOND · INTRODUCTION</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Skip onboarding and open OKBOND Home"
+          accessibilityLabel="Skip onboarding and open OKBOND sign in"
           accessibilityHint="Saves this introduction as complete on this device"
           disabled={saving}
           onPress={() => { void finish(); }}

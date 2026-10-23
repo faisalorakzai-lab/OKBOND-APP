@@ -1,14 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
-import { Platform } from "react-native";
+import { Redirect, Tabs } from "expo-router";
+import { Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { palette } from "@/lib/design";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const auth = useAuth();
   const bottomPadding = Platform.OS === "web" ? 10 : Math.max(insets.bottom, 8);
+
+  if (auth.loading) return <View style={{ flex: 1, backgroundColor: palette.canvas }} />;
+  if (!auth.isAuthenticated) return <Redirect href="/auth" />;
 
   return (
     <Tabs

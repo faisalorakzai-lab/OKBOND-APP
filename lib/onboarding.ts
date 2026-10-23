@@ -1,7 +1,7 @@
 export const ONBOARDING_STORAGE_KEY = "okbond.mobile.phase1.onboarding-seen";
 export const ONBOARDING_COMPLETED_VALUE = "seen";
 
-export type LaunchDestination = "app" | "onboarding";
+export type LaunchDestination = "auth" | "onboarding";
 
 export interface OnboardingStorage {
   getItem(key: string): Promise<string | null>;
@@ -11,7 +11,7 @@ export interface OnboardingStorage {
 
 export async function resolveLaunchDestination(storage: OnboardingStorage): Promise<LaunchDestination> {
   const value = await storage.getItem(ONBOARDING_STORAGE_KEY);
-  return value === ONBOARDING_COMPLETED_VALUE ? "app" : "onboarding";
+  return value === ONBOARDING_COMPLETED_VALUE ? "auth" : "onboarding";
 }
 
 export async function markOnboardingComplete(storage: OnboardingStorage): Promise<void> {

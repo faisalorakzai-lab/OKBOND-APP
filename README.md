@@ -49,3 +49,11 @@ A dedicated approved mobile-app privacy policy, the publisher's retention/deleti
 ## GitHub handoff
 
 The intended external destination is `https://github.com/faisalorakzai-lab/OKBOND-APP`. This export must preserve its existing files/history and contain app source only: no `.env*` local secrets, signing credentials, Expo access token, GitHub personal access token, or Vercel token. The initialized Manus mobile project's canonical repository remains separate from the external GitHub export.
+
+## Authentication and referral foundation
+
+The implementation now preserves the five-screen onboarding, then routes new or signed-out users to `/auth`. Returning users with a valid stored session are sent to the protected tabs; the tab layout also guards direct navigation and redirects expired sessions back to authentication. Native session tokens and cached user information use `expo-secure-store` (web uses the existing cookie/local browser path).
+
+The authentication screen includes Log In/Create Account modes, email validation and password visibility, optional referral-code retention, country-code phone input, OTP/resend messaging, Google/portal OAuth launch, Web3 wallet entry messaging, password-reset messaging, legal links, accessible loading/error states, and sign-out. Actions do not claim success when their production provider/backend configuration is absent. The existing Manus OAuth callback is wired at `/oauth/callback`; configure the OAuth portal/app ID, matching iOS/Android deep-link redirects, and server credentials outside the app bundle to activate it. Google, SMS OTP, WalletConnect, SIWE nonce verification, password storage, email verification, referral validation, rate limits, and account deletion require a production auth backend/provider before store release.
+
+Referral codes are retained locally while a user moves between onboarding and auth. The UI never awards or confirms a referral relationship from text entry alone; server-side validation and post-registration binding remain required. No credentials from the repository setup message are stored in source, `.env`, logs, or commits.

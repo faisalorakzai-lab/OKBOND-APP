@@ -26,11 +26,11 @@ describe("OKBOND first-launch onboarding", () => {
     await expect(resolveLaunchDestination(storage)).resolves.toBe("onboarding");
   });
 
-  it("saves completion locally and routes a later launch directly to the app", async () => {
+  it("saves completion locally and routes a later launch to authentication", async () => {
     const { storage } = memoryStorage();
     await markOnboardingComplete(storage);
-    await expect(resolveLaunchDestination(storage)).resolves.toBe("app");
-    await expect(resolveLaunchDestination(storage)).resolves.toBe("app");
+    await expect(resolveLaunchDestination(storage)).resolves.toBe("auth");
+    await expect(resolveLaunchDestination(storage)).resolves.toBe("auth");
   });
 
   it("replay removes only the onboarding flag and returns the next launch to onboarding", async () => {
