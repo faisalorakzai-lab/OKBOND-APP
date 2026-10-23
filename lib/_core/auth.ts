@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 import { SESSION_TOKEN_KEY, USER_INFO_KEY } from "@/constants/oauth";
 
 export type User = {
-  id: number;
+  id: number | string;
   openId: string;
   name: string | null;
   email: string | null;

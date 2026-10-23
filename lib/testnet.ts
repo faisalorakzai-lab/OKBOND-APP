@@ -10,7 +10,7 @@ export const TESTNET_PREVIEW_USER: User = {
 };
 
 export function isTestnetPreviewEnabled(): boolean {
-  return __DEV__ || process.env.EXPO_PUBLIC_TESTNET_PREVIEW === "true";
+  return process.env.EXPO_PUBLIC_TESTNET_PREVIEW === "true";
 }
 
 export function isTestnetPreviewUser(user: User | null): boolean {

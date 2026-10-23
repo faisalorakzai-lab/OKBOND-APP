@@ -1,12 +1,9 @@
-import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
+import { supabase, toAuthUser } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Platform } from "react-native";
 import { isTestnetPreviewEnabled, isTestnetPreviewUser } from "@/lib/testnet";
 
-type UseAuthOptions = {
-  autoFetch?: boolean;
-};
+type UseAuthOptions = { autoFetch?: boolean };
 
 export function useAuth(options?: UseAuthOptions) {
   const { autoFetch = true } = options ?? {};
@@ -15,119 +12,50 @@ export function useAuth(options?: UseAuthOptions) {
   const [error, setError] = useState<Error | null>(null);
 
   const fetchUser = useCallback(async () => {
-    console.log("[useAuth] fetchUser called");
     try {
       setLoading(true);
       setError(null);
-
-      // Web platform: use cookie-based auth, fetch user from API
-      if (Platform.OS === "web") {
-        const cachedUser = await Auth.getUserInfo();
-        if (isTestnetPreviewEnabled() && isTestnetPreviewUser(cachedUser)) {
-          setUser(cachedUser);
-          return;
-        }
-        console.log("[useAuth] Web platform: fetching user from API...");
-        const apiUser = await Api.getMe();
-
-        if (apiUser) {
-          const userInfo: Auth.User = {
-            id: apiUser.id,
-            openId: apiUser.openId,
-            name: apiUser.name,
-            email: apiUser.email,
-            loginMethod: apiUser.loginMethod,
-            lastSignedIn: new Date(apiUser.lastSignedIn),
-          };
-          setUser(userInfo);
-          // Cache user info in localStorage for faster subsequent loads
-          await Auth.setUserInfo(userInfo);
-          console.log("[useAuth] Web user set from API");
-        } else {
-          console.log("[useAuth] Web: No authenticated user from API");
-          setUser(null);
-          await Auth.clearUserInfo();
-        }
-        return;
-      }
-
-      // Native platform: use token-based auth
-      console.log("[useAuth] Native platform: checking for session token...");
-      const sessionToken = await Auth.getSessionToken();
-      if (!sessionToken) {
-        console.log("[useAuth] No session token, setting user to null");
-        setUser(null);
-        return;
-      }
-
-      // Use cached user info for native (token validates the session)
-      const cachedUser = await Auth.getUserInfo();
-      if (cachedUser && (isTestnetPreviewEnabled() || !isTestnetPreviewUser(cachedUser))) {
-        console.log("[useAuth] Using cached user info");
-        setUser(cachedUser);
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (data.session?.user) {
+        const userInfo = toAuthUser(data.session.user);
+        setUser(userInfo);
+        await Auth.setUserInfo(userInfo);
       } else {
-        console.log("[useAuth] No cached user, setting user to null");
-        setUser(null);
+        const cachedUser = await Auth.getUserInfo();
+        if (isTestnetPreviewEnabled() && isTestnetPreviewUser(cachedUser)) setUser(cachedUser);
+        else { setUser(null); await Auth.clearUserInfo(); }
       }
     } catch (err) {
-      const error = err instanceof Error ? err : new Error("Failed to fetch user");
-      console.error("[useAuth] fetchUser error");
-      setError(error);
+      const nextError = err instanceof Error ? err : new Error("Failed to restore authentication session");
+      setError(nextError);
       setUser(null);
-    } finally {
-      setLoading(false);
-      console.log("[useAuth] fetchUser completed, loading:", false);
-    }
+    } finally { setLoading(false); }
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await Api.logout();
-    } catch {
-      console.error("[Auth] Logout API call failed");
-      // Continue with logout even if API call fails
-    } finally {
-      await Auth.removeSessionToken();
-      await Auth.clearUserInfo();
-      setUser(null);
-      setError(null);
-    }
+    await supabase.auth.signOut();
+    await Auth.removeSessionToken();
+    await Auth.clearUserInfo();
+    setUser(null);
+    setError(null);
   }, []);
 
-  const isAuthenticated = useMemo(() => Boolean(user), [user]);
-
   useEffect(() => {
-    console.log("[useAuth] useEffect triggered");
-    if (autoFetch) {
-      if (Platform.OS === "web") {
-        // Web: fetch user from API directly (user will login manually if needed)
-        console.log("[useAuth] Web: fetching user from API...");
-        fetchUser();
-      } else {
-        // Native: check for cached user info first for faster initial load
-        Auth.getUserInfo().then((cachedUser) => {
-          if (cachedUser && (isTestnetPreviewEnabled() || !isTestnetPreviewUser(cachedUser))) {
-            console.log("[useAuth] Native: setting cached user immediately");
-            setUser(cachedUser);
-            setLoading(false);
-          } else {
-            // No cached user, check session token
-            fetchUser();
-          }
-        });
+    if (!autoFetch) { setLoading(false); return; }
+    void fetchUser();
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const userInfo = toAuthUser(session.user);
+        setUser(userInfo);
+        void Auth.setUserInfo(userInfo);
+      } else if (!isTestnetPreviewEnabled()) {
+        setUser(null);
       }
-    } else {
-      console.log("[useAuth] autoFetch disabled, setting loading to false");
       setLoading(false);
-    }
+    });
+    return () => listener.subscription.unsubscribe();
   }, [autoFetch, fetchUser]);
 
-  return {
-    user,
-    loading,
-    error,
-    isAuthenticated,
-    refresh: fetchUser,
-    logout,
-  };
+  return { user, loading, error, isAuthenticated: useMemo(() => Boolean(user), [user]), refresh: fetchUser, logout };
 }

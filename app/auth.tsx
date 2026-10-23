@@ -10,6 +10,8 @@ import { palette } from "@/lib/design";
 import { getReferralCode, normalizeReferralCode, setReferralCode } from "@/lib/referral";
 import { isTestnetPreviewEnabled, TESTNET_PREVIEW_USER } from "@/lib/testnet";
 import * as Auth from "@/lib/_core/auth";
+import { supabase, toAuthUser } from "@/lib/supabase";
+import { connectBrowserWallet } from "@/lib/wallet";
 
 type Mode = "login" | "signup";
 type Method = "email" | "phone";
@@ -28,6 +30,7 @@ export default function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   useEffect(() => { void getReferralCode().then((value) => { if (value) setReferral(value); }); }, []);
   const title = useMemo(() => mode === "login" ? "Welcome back" : "Create your account", [mode]);
@@ -35,11 +38,36 @@ export default function AuthScreen() {
 
   const submit = async () => {
     setError(null); setMessage(null);
-    if (method === "phone") { setMessage("Phone verification is not configured for this build. No OTP was sent."); return; }
-    if (!isValidEmail(email)) { setError("Enter a valid email address."); return; }
-    if (password.length < 8) { setError("Use at least 8 characters for your password."); return; }
-    if (referral.trim()) await setReferralCode(normalizeReferralCode(referral));
-    setMessage("Secure email authentication is waiting for the production backend. No account was created.");
+    setBusy(true);
+    if (method === "phone") { setMessage("Phone verification is not configured for this build. No OTP was sent."); setBusy(false); return; }
+    if (!isValidEmail(email)) { setError("Enter a valid email address."); setBusy(false); return; }
+    if (password.length < 8) { setError("Use at least 8 characters for your password."); setBusy(false); return; }
+    try {
+      const normalizedReferral = referral.trim() ? normalizeReferralCode(referral) : undefined;
+      if (normalizedReferral) await setReferralCode(normalizedReferral);
+      if (mode === "signup" && normalizedReferral) {
+        const { data: referralIsValid, error: referralError } = await supabase.rpc("is_valid_account_referral", { input_code: normalizedReferral });
+        if (referralError) throw referralError;
+        if (!referralIsValid) throw new Error("That referral code is not valid. Check it and try again.");
+      }
+      const result = mode === "login"
+        ? await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
+        : await supabase.auth.signUp({
+            email: email.trim().toLowerCase(),
+            password,
+            options: { data: { name: email.trim().split("@")[0], referred_by_code: normalizedReferral ?? null } },
+          });
+      if (result.error) throw result.error;
+      if (!result.data.user) throw new Error("Supabase did not return a user account.");
+      if (!result.data.session) {
+        setMessage("Account created. Check your email to confirm the account, then log in.");
+        return;
+      }
+      await Auth.setUserInfo(toAuthUser(result.data.user));
+      router.replace("/(tabs)");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed. Please try again.");
+    } finally { setBusy(false); }
   };
 
   const continueWithGoogle = async () => {
@@ -48,6 +76,16 @@ export default function AuthScreen() {
       if (!OAUTH_PORTAL_URL) throw new Error("Google authentication is not configured for this build.");
       await startOAuthLogin();
     } catch (err) { setError(err instanceof Error ? err.message : "Google authentication is not configured."); }
+    finally { setBusy(false); }
+  };
+
+  const continueWithWallet = async () => {
+    setError(null); setMessage(null); setBusy(true);
+    try {
+      const wallet = await connectBrowserWallet();
+      setWalletAddress(wallet.address);
+      setMessage(`Wallet connected on Polygon: ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}. Wallet sign-in will be enabled after server-side signature verification is configured.`);
+    } catch (err) { setError(err instanceof Error ? err.message : "Could not connect the wallet."); }
     finally { setBusy(false); }
   };
 
@@ -84,7 +122,7 @@ export default function AuthScreen() {
           {error ? <InfoNotice title="Check your details" tone="warning">{error}</InfoNotice> : null}
           {message ? <InfoNotice title="Preview status" tone="info">{message}</InfoNotice> : null}
           <Pressable accessibilityRole="button" onPress={() => { void submit(); }} style={({ pressed }) => [styles.submit, pressed ? styles.pressed : null]}><Text style={styles.submitText}>{mode === "login" ? "Log in" : "Create account"}</Text><Ionicons name="arrow-forward-outline" size={18} color={palette.canvas} /></Pressable>
-          <Pressable accessibilityRole="button" onPress={() => setMessage("Web3 wallet sign-in requires WalletConnect and server-verified SIWE. No wallet was connected.")} style={styles.walletButton}><Ionicons name="wallet-outline" size={18} color={palette.gold} /><Text style={styles.walletText}>Continue with wallet</Text></Pressable>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void continueWithWallet(); }} style={[styles.walletButton, busy ? styles.disabled : null]}><Ionicons name="wallet-outline" size={18} color={palette.gold} /><Text style={styles.walletText}>{walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : "Continue with wallet"}</Text></Pressable>
         </View>
 
         {isTestnetPreviewEnabled() ? <View style={styles.testnetCard}><View style={styles.testnetIcon}><Ionicons name="flask-outline" size={18} color={palette.goldBright} /></View><View style={styles.testnetCopy}><Text style={styles.testnetTitle}>Testnet Preview Account</Text><Text style={styles.testnetDetail}>{TESTNET_PREVIEW_USER.email} · Home Screen review only</Text></View><Pressable accessibilityRole="button" onPress={() => { void startTestnetPreview(); }} style={styles.testnetButton}><Text style={styles.testnetButtonText}>Open</Text></Pressable></View> : null}
