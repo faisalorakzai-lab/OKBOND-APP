@@ -4,7 +4,6 @@ import { Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
-import { palette } from "@/lib/design";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function TabLayout() {
@@ -12,7 +11,7 @@ export default function TabLayout() {
   const auth = useAuth();
   const bottomPadding = Platform.OS === "web" ? 10 : Math.max(insets.bottom, 8);
 
-  if (auth.loading) return <View style={{ flex: 1, backgroundColor: palette.canvas }} />;
+  if (auth.loading) return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
   if (!auth.isAuthenticated) return <Redirect href="/auth" />;
 
   return (
@@ -20,15 +19,15 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: palette.gold,
-        tabBarInactiveTintColor: palette.subtle,
+        tabBarActiveTintColor: "#B38A27",
+        tabBarInactiveTintColor: "#8A8A8E",
         tabBarLabelStyle: { fontSize: 10, fontWeight: "700", letterSpacing: 0.2, marginTop: 1 },
         tabBarStyle: {
           height: 58 + bottomPadding,
           paddingTop: 7,
           paddingBottom: bottomPadding,
-          backgroundColor: palette.canvas,
-          borderTopColor: palette.line,
+          backgroundColor: "#FFFFFF",
+          borderTopColor: "#E8E8EA",
           borderTopWidth: 1,
         },
       }}
