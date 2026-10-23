@@ -46,3 +46,7 @@ The existing website repository and Vercel production deployment were not change
 ## Reference-alignment update
 
 The Home composition was refined after the supplied wallet reference: it now uses a compact OKBOND header, a gold ecosystem promo banner, profile/balance row with notification, QR, and activity controls, four large Fund/Send/Swap/Earn tiles, Services/Assets/NFT strip, horizontal service cards, a branded verified-ecosystem promo card, and the fixed Home/Markets/Activity/Services/Profile navigation. The layout is inspired by the reference's information hierarchy but uses original OKBOND copy, logo, colors, and icons.
+
+## Premium carousel update
+
+The top ecosystem banner is now a five-slide carousel. Slides rotate automatically every three seconds, expose five accessible dot controls, and support direct slide selection. The five original OKBOND messages cover ecosystem trust, Polygon public reads, secure access, services, and the next product chapter. Each slide has its own tone, icon treatment, kicker, headline, body copy, and restrained gold/graphite visual system.
