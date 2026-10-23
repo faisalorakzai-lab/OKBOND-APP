@@ -14,7 +14,7 @@ export default function MoreScreen() {
           <RowLink title="Lottery information" detail="Contract facts and current read status" icon="ticket-outline" onPress={() => router.push("/lottery")} />
           <RowLink title="Vault overview" detail="Verified OKBOND balance getter" icon="business-outline" onPress={() => router.push("/vault")} />
           <RowLink title="Governance overview" detail="Deployment status and source availability" icon="people-outline" onPress={() => router.push("/governance")} />
-          <RowLink title="Profile & settings" detail="Local app preferences; no account profile" icon="person-circle-outline" onPress={() => router.push("/settings")} />
+          <RowLink title="Profile & settings" detail="Secure session and local app preferences" icon="person-circle-outline" onPress={() => router.push("/settings")} />
           <RowLink title="Help" detail="App scope and support route" icon="help-circle-outline" onPress={() => router.push("/help")} />
           <RowLink title="Legal & privacy note" detail="Data and store-submission disclosures" icon="document-text-outline" onPress={() => router.push("/legal")} />
         </Surface>

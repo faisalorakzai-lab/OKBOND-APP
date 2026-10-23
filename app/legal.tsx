@@ -6,8 +6,8 @@ export default function LegalScreen() {
     <AppScreen>
       <FadeIn>
         <PageHeader eyebrow="LEGAL & PRIVACY" title="Know what this version does." subtitle="This information describes the intended Phase 1 build; store declarations must be checked against the exact shipped binary and SDKs." />
-        <InfoNotice title="No account or submitted inquiry" tone="success">
-          The app does not create an account, request a wallet address, connect a signer, send a service request, or store a personal profile. The onboarding-seen flag is stored locally on this device.
+        <InfoNotice title="Account access, no financial actions" tone="success">
+          This build includes an authentication surface and session handling, but does not enable wallet signing, personal holdings, financial transactions, or service-request submission. Session data is handled by the configured auth backend; onboarding and referral draft state are stored locally.
         </InfoNotice>
         <SectionHeading title="Network requests" detail="One public RPC is selected for a read at a time; a failed provider is skipped." />
         <Surface>

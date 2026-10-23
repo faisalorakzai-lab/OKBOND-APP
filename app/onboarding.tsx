@@ -32,7 +32,7 @@ const slides = [
   {
     label: "OKBOND · PHASE 1",
     title: "Ready to explore?",
-    body: "Your OKBOND overview starts here. This version stays read-only, with no account or wallet connection.",
+    body: "Your OKBOND overview starts here. Account access is available for the protected journey; wallet actions remain disabled.",
   },
 ] as const;
 
@@ -100,7 +100,7 @@ export default function OnboardingScreen() {
         ))}
       </View>
 
-      <Text style={styles.disclosure}>READ-ONLY PHASE 1 · NO ACCOUNT · NO WALLET · NO TRANSACTIONS</Text>
+      <Text style={styles.disclosure}>READ-ONLY DATA · ACCOUNT ACCESS · NO WALLET TRANSACTIONS</Text>
 
       {saveError ? (
         <View style={styles.errorBlock}>
