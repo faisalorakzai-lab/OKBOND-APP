@@ -2,6 +2,7 @@ import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
+import { isTestnetPreviewEnabled, isTestnetPreviewUser } from "@/lib/testnet";
 
 type UseAuthOptions = {
   autoFetch?: boolean;
@@ -21,6 +22,11 @@ export function useAuth(options?: UseAuthOptions) {
 
       // Web platform: use cookie-based auth, fetch user from API
       if (Platform.OS === "web") {
+        const cachedUser = await Auth.getUserInfo();
+        if (isTestnetPreviewEnabled() && isTestnetPreviewUser(cachedUser)) {
+          setUser(cachedUser);
+          return;
+        }
         console.log("[useAuth] Web platform: fetching user from API...");
         const apiUser = await Api.getMe();
 
@@ -56,7 +62,7 @@ export function useAuth(options?: UseAuthOptions) {
 
       // Use cached user info for native (token validates the session)
       const cachedUser = await Auth.getUserInfo();
-      if (cachedUser) {
+      if (cachedUser && (isTestnetPreviewEnabled() || !isTestnetPreviewUser(cachedUser))) {
         console.log("[useAuth] Using cached user info");
         setUser(cachedUser);
       } else {
@@ -100,7 +106,7 @@ export function useAuth(options?: UseAuthOptions) {
       } else {
         // Native: check for cached user info first for faster initial load
         Auth.getUserInfo().then((cachedUser) => {
-          if (cachedUser) {
+          if (cachedUser && (isTestnetPreviewEnabled() || !isTestnetPreviewUser(cachedUser))) {
             console.log("[useAuth] Native: setting cached user immediately");
             setUser(cachedUser);
             setLoading(false);

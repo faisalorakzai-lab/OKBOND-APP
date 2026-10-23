@@ -2,17 +2,19 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+
 import { AppScreen, InfoNotice } from "@/components/native-ui";
 import { OAUTH_PORTAL_URL, startOAuthLogin } from "@/constants/oauth";
 import { palette } from "@/lib/design";
 import { getReferralCode, normalizeReferralCode, setReferralCode } from "@/lib/referral";
+import { isTestnetPreviewEnabled, TESTNET_PREVIEW_USER } from "@/lib/testnet";
+import * as Auth from "@/lib/_core/auth";
 
 type Mode = "login" | "signup";
 type Method = "email" | "phone";
 
 const LEGAL_URL = "https://orakzaibond.com/legal";
-
 function isValidEmail(email: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()); }
 
 export default function AuthScreen() {
@@ -29,17 +31,17 @@ export default function AuthScreen() {
 
   useEffect(() => { void getReferralCode().then((value) => { if (value) setReferral(value); }); }, []);
   const title = useMemo(() => mode === "login" ? "Welcome back" : "Create your account", [mode]);
-
   const switchMode = (next: Mode) => { setError(null); setMessage(null); setMode(next); };
+
   const submit = async () => {
     setError(null); setMessage(null);
-    if (method === "phone") { setMessage("Phone OTP is not enabled yet. A verified SMS provider and server-side OTP configuration are required before this can be used."); return; }
+    if (method === "phone") { setMessage("Phone verification is not configured for this build. No OTP was sent."); return; }
     if (!isValidEmail(email)) { setError("Enter a valid email address."); return; }
-    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
-    if (mode === "signup" && !referral.trim()) { /* referral is optional; intentionally no validation */ }
+    if (password.length < 8) { setError("Use at least 8 characters for your password."); return; }
     if (referral.trim()) await setReferralCode(normalizeReferralCode(referral));
-    setMessage("Email authentication is pending backend configuration. No account was created and no password was sent.");
+    setMessage("Secure email authentication is waiting for the production backend. No account was created.");
   };
+
   const continueWithGoogle = async () => {
     setError(null); setMessage(null); setBusy(true);
     try {
@@ -48,44 +50,45 @@ export default function AuthScreen() {
     } catch (err) { setError(err instanceof Error ? err.message : "Google authentication is not configured."); }
     finally { setBusy(false); }
   };
-  const openLegal = async () => { await Linking.openURL(LEGAL_URL); };
+
+  const startTestnetPreview = async () => {
+    if (!isTestnetPreviewEnabled()) return;
+    setBusy(true); setError(null);
+    try {
+      await Auth.setUserInfo(TESTNET_PREVIEW_USER);
+      setMessage("Testnet Preview Account active. No production account, wallet, or transaction is connected.");
+      router.replace("/(tabs)");
+    } catch { setError("Could not start the local testnet preview session."); }
+    finally { setBusy(false); }
+  };
 
   return (
     <AppScreen contentStyle={styles.page}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={styles.header}>
+        <View style={styles.brandRow}>
           <Image source={require("../assets/images/icon.png")} style={styles.logo} accessibilityLabel="OKBOND logo" />
-          <Text style={styles.wordmark}>OKBOND</Text>
-          <Text style={styles.eyebrow}>SECURE ACCESS · POLYGON ECOSYSTEM</Text>
+          <View style={styles.brandText}><Text style={styles.wordmark}>OKBOND</Text><Text style={styles.eyebrow}>SECURE ACCESS · POLYGON ECOSYSTEM</Text></View>
+          <View style={styles.secureBadge}><Ionicons name="shield-checkmark-outline" size={15} color={palette.goldBright} /><Text style={styles.secureText}>SECURE</Text></View>
         </View>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>Your gateway to a connected digital ecosystem.</Text>
-        <View style={styles.modeSwitch} accessibilityRole="tablist">
-          {(["login", "signup"] as const).map((item) => (
-            <Pressable key={item} accessibilityRole="tab" accessibilityState={{ selected: mode === item }} onPress={() => switchMode(item)} style={[styles.modeButton, mode === item ? styles.modeActive : null]}>
-              <Text style={[styles.modeText, mode === item ? styles.modeTextActive : null]}>{item === "login" ? "Log In" : "Create Account"}</Text>
-            </Pressable>
-          ))}
+
+        <View style={styles.intro}><Text style={styles.title}>{title}</Text><Text style={styles.subtitle}>{mode === "login" ? "Continue to your connected OKBOND world." : "Create a secure entry to your OKBOND world."}</Text></View>
+        <View style={styles.card}>
+          <View style={styles.modeSwitch} accessibilityRole="tablist">{(["login", "signup"] as const).map((item) => <Pressable key={item} accessibilityRole="tab" accessibilityState={{ selected: mode === item }} onPress={() => switchMode(item)} style={[styles.modeButton, mode === item ? styles.modeActive : null]}><Text style={[styles.modeText, mode === item ? styles.modeTextActive : null]}>{item === "login" ? "Log in" : "Create account"}</Text></Pressable>)}</View>
+
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void continueWithGoogle(); }} style={({ pressed }) => [styles.googleButton, pressed ? styles.pressed : null, busy ? styles.disabled : null]}><View style={styles.googleMark}><Text style={styles.googleG}>G</Text></View><Text style={styles.googleText}>{busy ? "Opening secure sign-in…" : "Continue with Google"}</Text></Pressable>
+          <View style={styles.divider}><View style={styles.rule} /><Text style={styles.or}>OR CONTINUE WITH</Text><View style={styles.rule} /></View>
+
+          <View style={styles.methodSwitch}><Pressable onPress={() => { setMethod("email"); setError(null); setMessage(null); }} style={[styles.methodButton, method === "email" ? styles.methodActive : null]}><Ionicons name="mail-outline" size={14} color={method === "email" ? palette.goldBright : palette.subtle} /><Text style={[styles.methodText, method === "email" ? styles.methodTextActive : null]}>Email</Text></Pressable><Pressable onPress={() => { setMethod("phone"); setError(null); setMessage(null); }} style={[styles.methodButton, method === "phone" ? styles.methodActive : null]}><Ionicons name="phone-portrait-outline" size={14} color={method === "phone" ? palette.goldBright : palette.subtle} /><Text style={[styles.methodText, method === "phone" ? styles.methodTextActive : null]}>Phone OTP</Text></Pressable></View>
+          {method === "email" ? <><View style={styles.field}><Ionicons name="mail-outline" size={17} color={palette.subtle} /><TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="Email address" placeholderTextColor={palette.subtle} value={email} onChangeText={setEmail} style={styles.input} accessibilityLabel="Email address" /></View><View style={styles.field}><Ionicons name="lock-closed-outline" size={17} color={palette.subtle} /><TextInput autoCapitalize="none" autoComplete="password" placeholder="Password" placeholderTextColor={palette.subtle} secureTextEntry={!showPassword} value={password} onChangeText={setPassword} style={styles.input} accessibilityLabel="Password" /><Pressable accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword((value) => !value)} hitSlop={10}><Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={19} color={palette.subtle} /></Pressable></View></> : <View style={styles.field}><Text style={styles.countryText}>+92</Text><TextInput keyboardType="phone-pad" placeholder="Phone number" placeholderTextColor={palette.subtle} value={phone} onChangeText={setPhone} style={styles.input} accessibilityLabel="Phone number" /></View>}
+          {mode === "signup" ? <View style={styles.field}><Ionicons name="gift-outline" size={17} color={palette.subtle} /><TextInput autoCapitalize="characters" placeholder="Referral code (optional)" placeholderTextColor={palette.subtle} value={referral} onChangeText={setReferral} style={styles.input} accessibilityLabel="Optional referral code" /></View> : <Pressable onPress={() => setMessage("Password reset is waiting for the secure email provider. No reset request was sent.")}><Text style={styles.forgot}>Forgot password?</Text></Pressable>}
+          {error ? <InfoNotice title="Check your details" tone="warning">{error}</InfoNotice> : null}
+          {message ? <InfoNotice title="Preview status" tone="info">{message}</InfoNotice> : null}
+          <Pressable accessibilityRole="button" onPress={() => { void submit(); }} style={({ pressed }) => [styles.submit, pressed ? styles.pressed : null]}><Text style={styles.submitText}>{mode === "login" ? "Log in" : "Create account"}</Text><Ionicons name="arrow-forward-outline" size={18} color={palette.canvas} /></Pressable>
+          <Pressable accessibilityRole="button" onPress={() => setMessage("Web3 wallet sign-in requires WalletConnect and server-verified SIWE. No wallet was connected.")} style={styles.walletButton}><Ionicons name="wallet-outline" size={18} color={palette.gold} /><Text style={styles.walletText}>Continue with wallet</Text></Pressable>
         </View>
-        <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void continueWithGoogle(); }} style={({ pressed }) => [styles.googleButton, pressed ? styles.pressed : null, busy ? styles.disabled : null]}>
-          {busy ? <ActivityIndicator color={palette.gold} /> : <Ionicons name="logo-google" size={18} color={palette.goldBright} />}
-          <Text style={styles.googleText}>{busy ? "Opening secure sign-in…" : "Continue with Google"}</Text>
-        </Pressable>
-        <View style={styles.divider}><View style={styles.rule} /><Text style={styles.or}>OR</Text><View style={styles.rule} /></View>
-        <View style={styles.methodSwitch}>
-          <Pressable onPress={() => { setMethod("email"); setError(null); setMessage(null); }} style={[styles.methodButton, method === "email" ? styles.methodActive : null]}><Text style={[styles.methodText, method === "email" ? styles.methodTextActive : null]}>Email</Text></Pressable>
-          <Pressable onPress={() => { setMethod("phone"); setError(null); setMessage(null); }} style={[styles.methodButton, method === "phone" ? styles.methodActive : null]}><Text style={[styles.methodText, method === "phone" ? styles.methodTextActive : null]}>Phone OTP</Text></Pressable>
-        </View>
-        {method === "email" ? <>
-          <TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="Email address" placeholderTextColor={palette.subtle} value={email} onChangeText={setEmail} style={styles.input} accessibilityLabel="Email address" />
-          <View style={styles.passwordWrap}><TextInput autoCapitalize="none" autoComplete="password" placeholder="Password" placeholderTextColor={palette.subtle} secureTextEntry={!showPassword} value={password} onChangeText={setPassword} style={styles.passwordInput} accessibilityLabel="Password" /><Pressable accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword((value) => !value)} hitSlop={10}><Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={palette.subtle} /></Pressable></View>
-        </> : <View style={styles.phoneRow}><View style={styles.country}><Text style={styles.countryText}>+92</Text></View><TextInput keyboardType="phone-pad" placeholder="Phone number" placeholderTextColor={palette.subtle} value={phone} onChangeText={setPhone} style={styles.phoneInput} accessibilityLabel="Phone number" /></View>}
-        {mode === "signup" ? <TextInput autoCapitalize="characters" placeholder="Referral code (optional)" placeholderTextColor={palette.subtle} value={referral} onChangeText={setReferral} style={styles.input} accessibilityLabel="Optional referral code" /> : <Pressable onPress={() => setMessage("Password reset is pending the same secure email provider configuration; no reset request was sent.")}><Text style={styles.forgot}>Forgot password?</Text></Pressable>}
-        {error ? <InfoNotice title="Check your details" tone="warning">{error}</InfoNotice> : null}
-        {message ? <InfoNotice title="Not completed" tone="info">{message}</InfoNotice> : null}
-        <Pressable accessibilityRole="button" onPress={() => { void submit(); }} style={({ pressed }) => [styles.submit, pressed ? styles.pressed : null]}><Text style={styles.submitText}>{mode === "login" ? "Log In" : "Create Account"}</Text><Ionicons name="arrow-forward-outline" size={18} color={palette.canvas} /></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => setMessage("Web3 wallet sign-in is pending WalletConnect plus server-verified SIWE nonce configuration. Connecting a wallet alone will never authenticate an account.")} style={styles.walletButton}><Ionicons name="wallet-outline" size={18} color={palette.gold} /><Text style={styles.walletText}>Connect Web3 Wallet</Text></Pressable>
-        <Text style={styles.legal}>By continuing, you agree to the configured terms and acknowledge the <Text style={styles.link} onPress={() => { void openLegal(); }}>Privacy Policy</Text> and Terms of Service.</Text>
+
+        {isTestnetPreviewEnabled() ? <View style={styles.testnetCard}><View style={styles.testnetIcon}><Ionicons name="flask-outline" size={18} color={palette.goldBright} /></View><View style={styles.testnetCopy}><Text style={styles.testnetTitle}>Testnet Preview Account</Text><Text style={styles.testnetDetail}>{TESTNET_PREVIEW_USER.email} · Home Screen review only</Text></View><Pressable accessibilityRole="button" onPress={() => { void startTestnetPreview(); }} style={styles.testnetButton}><Text style={styles.testnetButtonText}>Open</Text></Pressable></View> : null}
+        <Text style={styles.legal}>By continuing, you agree to the configured terms and acknowledge the <Text style={styles.link} onPress={() => { void Linking.openURL(LEGAL_URL); }}>Privacy Policy</Text> and Terms of Service.</Text>
         <Pressable onPress={() => router.replace("/onboarding")}><Text style={styles.back}>Review OKBOND introduction</Text></Pressable>
       </KeyboardAvoidingView>
     </AppScreen>
@@ -93,12 +96,5 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flexGrow: 1, justifyContent: "center", paddingTop: 28, paddingBottom: 42, gap: 16 },
-  header: { alignItems: "center", gap: 7, marginBottom: 8 }, logo: { width: 72, height: 72, borderRadius: 22 }, wordmark: { color: palette.text, fontSize: 18, fontWeight: "900", letterSpacing: 4 }, eyebrow: { color: palette.gold, fontSize: 9, fontWeight: "800", letterSpacing: 1.4 },
-  title: { color: palette.text, fontSize: 30, lineHeight: 36, fontWeight: "800", letterSpacing: -0.8 }, subtitle: { color: palette.subtle, fontSize: 14, lineHeight: 21, marginTop: -8 },
-  modeSwitch: { flexDirection: "row", backgroundColor: palette.raised, borderRadius: 14, padding: 4, borderWidth: 1, borderColor: palette.line }, modeButton: { flex: 1, minHeight: 43, alignItems: "center", justifyContent: "center", borderRadius: 10 }, modeActive: { backgroundColor: palette.gold }, modeText: { color: palette.subtle, fontSize: 13, fontWeight: "800" }, modeTextActive: { color: palette.canvas },
-  googleButton: { minHeight: 50, borderWidth: 1, borderColor: palette.gold, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 }, googleText: { color: palette.text, fontSize: 13, fontWeight: "800" }, pressed: { opacity: 0.78 }, disabled: { opacity: 0.55 }, divider: { flexDirection: "row", alignItems: "center", gap: 10 }, rule: { flex: 1, height: 1, backgroundColor: palette.line }, or: { color: palette.subtle, fontSize: 10, fontWeight: "800", letterSpacing: 1 },
-  methodSwitch: { flexDirection: "row", gap: 8 }, methodButton: { paddingVertical: 8, paddingHorizontal: 13, borderRadius: 20, borderWidth: 1, borderColor: palette.line }, methodActive: { borderColor: palette.gold, backgroundColor: palette.goldSoft }, methodText: { color: palette.subtle, fontSize: 11, fontWeight: "700" }, methodTextActive: { color: palette.goldBright },
-  input: { minHeight: 50, backgroundColor: palette.raised, borderWidth: 1, borderColor: palette.line, borderRadius: 14, paddingHorizontal: 15, color: palette.text, fontSize: 14 }, passwordWrap: { minHeight: 50, backgroundColor: palette.raised, borderWidth: 1, borderColor: palette.line, borderRadius: 14, paddingLeft: 15, paddingRight: 14, flexDirection: "row", alignItems: "center" }, passwordInput: { flex: 1, color: palette.text, fontSize: 14 }, phoneRow: { flexDirection: "row", gap: 8 }, country: { minHeight: 50, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: palette.line, backgroundColor: palette.raised, justifyContent: "center" }, countryText: { color: palette.goldBright, fontWeight: "800" }, phoneInput: { flex: 1, minHeight: 50, backgroundColor: palette.raised, borderWidth: 1, borderColor: palette.line, borderRadius: 14, paddingHorizontal: 15, color: palette.text, fontSize: 14 },
-  forgot: { alignSelf: "flex-end", color: palette.goldBright, fontSize: 12, fontWeight: "700", marginTop: -6 }, submit: { minHeight: 50, borderRadius: 14, backgroundColor: palette.gold, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 17 }, submitText: { color: palette.canvas, fontSize: 14, fontWeight: "900" }, walletButton: { minHeight: 48, borderRadius: 14, backgroundColor: palette.raised, borderWidth: 1, borderColor: palette.line, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 }, walletText: { color: palette.text, fontSize: 13, fontWeight: "800" }, legal: { color: palette.subtle, textAlign: "center", fontSize: 10, lineHeight: 16 }, link: { color: palette.goldBright, fontWeight: "800" }, back: { color: palette.subtle, textAlign: "center", fontSize: 11, fontWeight: "700" },
+  page: { flexGrow: 1, justifyContent: "center", paddingTop: 22, paddingBottom: 38, gap: 16 }, brandRow: { flexDirection: "row", alignItems: "center", gap: 10 }, logo: { width: 48, height: 48, borderRadius: 15 }, brandText: { flex: 1, gap: 3 }, wordmark: { color: palette.text, fontSize: 17, fontWeight: "900", letterSpacing: 3.2 }, eyebrow: { color: palette.gold, fontSize: 8, fontWeight: "800", letterSpacing: 1.05 }, secureBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 10, backgroundColor: palette.goldSoft, borderWidth: 1, borderColor: palette.gold }, secureText: { color: palette.goldBright, fontSize: 8, fontWeight: "900", letterSpacing: 0.8 }, intro: { gap: 6, marginTop: 13 }, title: { color: palette.text, fontSize: 30, lineHeight: 35, fontWeight: "900", letterSpacing: -0.8 }, subtitle: { color: palette.subtle, fontSize: 13, lineHeight: 19 }, card: { padding: 15, borderRadius: 22, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.line, gap: 13 }, modeSwitch: { flexDirection: "row", backgroundColor: palette.raised, borderRadius: 12, padding: 4 }, modeButton: { flex: 1, minHeight: 42, alignItems: "center", justifyContent: "center", borderRadius: 9 }, modeActive: { backgroundColor: palette.gold }, modeText: { color: palette.subtle, fontSize: 12, fontWeight: "800" }, modeTextActive: { color: palette.canvas }, googleButton: { minHeight: 48, borderWidth: 1, borderColor: palette.line, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, backgroundColor: palette.raised }, googleMark: { width: 22, height: 22, borderRadius: 7, backgroundColor: palette.text, alignItems: "center", justifyContent: "center" }, googleG: { color: palette.canvas, fontSize: 14, fontWeight: "900" }, googleText: { color: palette.text, fontSize: 13, fontWeight: "800" }, divider: { flexDirection: "row", alignItems: "center", gap: 8 }, rule: { flex: 1, height: 1, backgroundColor: palette.line }, or: { color: palette.subtle, fontSize: 8, fontWeight: "900", letterSpacing: 0.8 }, methodSwitch: { flexDirection: "row", gap: 8 }, methodButton: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: palette.line }, methodActive: { borderColor: palette.gold, backgroundColor: palette.goldSoft }, methodText: { color: palette.subtle, fontSize: 11, fontWeight: "700" }, methodTextActive: { color: palette.goldBright }, field: { minHeight: 50, backgroundColor: palette.raised, borderWidth: 1, borderColor: palette.line, borderRadius: 13, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 }, input: { flex: 1, color: palette.text, fontSize: 14, paddingVertical: 0 }, countryText: { color: palette.goldBright, fontSize: 13, fontWeight: "900" }, forgot: { alignSelf: "flex-end", color: palette.goldBright, fontSize: 11, fontWeight: "800", marginTop: -3 }, submit: { minHeight: 49, borderRadius: 13, backgroundColor: palette.gold, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16 }, submitText: { color: palette.canvas, fontSize: 14, fontWeight: "900" }, walletButton: { minHeight: 47, borderRadius: 13, backgroundColor: palette.raised, borderWidth: 1, borderColor: palette.line, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }, walletText: { color: palette.text, fontSize: 13, fontWeight: "800" }, testnetCard: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 16, backgroundColor: "#16140D", borderWidth: 1, borderColor: "#80621F" }, testnetIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: palette.goldSoft }, testnetCopy: { flex: 1, gap: 3 }, testnetTitle: { color: palette.goldBright, fontSize: 12, fontWeight: "900" }, testnetDetail: { color: palette.subtle, fontSize: 9, lineHeight: 14 }, testnetButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: palette.gold }, testnetButtonText: { color: palette.canvas, fontSize: 11, fontWeight: "900" }, legal: { color: palette.subtle, textAlign: "center", fontSize: 9, lineHeight: 15 }, link: { color: palette.goldBright, fontWeight: "800" }, back: { color: palette.subtle, textAlign: "center", fontSize: 11, fontWeight: "700" }, pressed: { opacity: 0.76 }, disabled: { opacity: 0.55 },
 });
