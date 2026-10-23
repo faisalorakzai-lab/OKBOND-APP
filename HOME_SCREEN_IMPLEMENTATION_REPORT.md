@@ -10,6 +10,8 @@ The five promotional slides rotate every three seconds and can be selected throu
 
 The OKBOND service shortcuts are Wallet, Vault, Scan to Pay, Property and Travel. Fund, Send, Swap and Earn preserve honest setup messages and never simulate successful payments, wallet transactions or yield. Personal balances remain unavailable until a verified wallet connection exists.
 
+The service shortcuts are implemented as a horizontal swipe-scroll strip, so the full OKBOND service catalog remains accessible on narrow mobile screens without shrinking the cards or overflowing the layout.
+
 ## Validation
 
 - TypeScript check: passed
