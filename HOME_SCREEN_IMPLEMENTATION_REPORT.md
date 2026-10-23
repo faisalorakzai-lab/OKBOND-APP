@@ -42,3 +42,7 @@ Personal balances, prices, 24-hour change, wallet transactions, send, receive, s
 - `app/(tabs)/_layout.tsx` — Home / Markets / Activity / Services / Profile navigation
 
 The existing website repository and Vercel production deployment were not changed.
+
+## Reference-alignment update
+
+The Home composition was refined after the supplied wallet reference: it now uses a compact OKBOND header, a gold ecosystem promo banner, profile/balance row with notification, QR, and activity controls, four large Fund/Send/Swap/Earn tiles, Services/Assets/NFT strip, horizontal service cards, a branded verified-ecosystem promo card, and the fixed Home/Markets/Activity/Services/Profile navigation. The layout is inspired by the reference's information hierarchy but uses original OKBOND copy, logo, colors, and icons.
