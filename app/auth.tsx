@@ -33,11 +33,29 @@ export default function AuthScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
 
   useEffect(() => { void getReferralCode().then((value) => { if (value) setReferral(value); }); }, []);
   const connectedWalletAddress = connectedAccountAddress ?? walletAddress;
   const title = useMemo(() => mode === "login" ? "Welcome back" : "Create your account", [mode]);
-  const switchMode = (next: Mode) => { setError(null); setMessage(null); setMode(next); };
+  const switchMode = (next: Mode) => { setError(null); setMessage(null); setVerificationPending(false); setVerificationCode(""); setMode(next); };
+
+  const verifySignupCode = async () => {
+    setError(null); setMessage(null);
+    const code = verificationCode.trim();
+    if (!/^\d{6}$/.test(code)) { setError("Enter the 6-digit verification code from your email."); return; }
+    setBusy(true);
+    try {
+      const result = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code, type: "signup" });
+      if (result.error) throw result.error;
+      if (!result.data.user) throw new Error("Verification succeeded but no user account was returned.");
+      await Auth.setUserInfo(toAuthUser(result.data.user));
+      router.replace("/(tabs)");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The verification code is invalid or expired.");
+    } finally { setBusy(false); }
+  };
 
   const submit = async () => {
     setError(null); setMessage(null);
@@ -66,7 +84,9 @@ export default function AuthScreen() {
       if (result.error) throw result.error;
       if (!result.data.user) throw new Error("Supabase did not return a user account.");
       if (!result.data.session) {
-        setMessage("Account created. Check your email to confirm the account, then log in.");
+        setVerificationPending(true);
+        setVerificationCode("");
+        setMessage("Account created. Enter the 6-digit code sent to your email to activate it.");
         return;
       }
       await Auth.setUserInfo(toAuthUser(result.data.user));
@@ -135,10 +155,12 @@ export default function AuthScreen() {
 
           <View style={styles.methodSwitch}><Pressable onPress={() => { setMethod("email"); setError(null); setMessage(null); }} style={[styles.methodButton, method === "email" ? styles.methodActive : null]}><Ionicons name="mail-outline" size={14} color={method === "email" ? palette.goldBright : palette.subtle} /><Text style={[styles.methodText, method === "email" ? styles.methodTextActive : null]}>Email</Text></Pressable><Pressable onPress={() => { setMethod("phone"); setError(null); setMessage(null); }} style={[styles.methodButton, method === "phone" ? styles.methodActive : null]}><Ionicons name="phone-portrait-outline" size={14} color={method === "phone" ? palette.goldBright : palette.subtle} /><Text style={[styles.methodText, method === "phone" ? styles.methodTextActive : null]}>Phone OTP</Text></Pressable></View>
           {method === "email" ? <><View style={styles.field}><Ionicons name="mail-outline" size={17} color={palette.subtle} /><TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="Email address" placeholderTextColor={palette.subtle} value={email} onChangeText={setEmail} style={styles.input} accessibilityLabel="Email address" /></View><View style={styles.field}><Ionicons name="lock-closed-outline" size={17} color={palette.subtle} /><TextInput autoCapitalize="none" autoComplete="password" placeholder="Password" placeholderTextColor={palette.subtle} secureTextEntry={!showPassword} value={password} onChangeText={setPassword} style={styles.input} accessibilityLabel="Password" /><Pressable accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"} onPress={() => setShowPassword((value) => !value)} hitSlop={10}><Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={19} color={palette.subtle} /></Pressable></View></> : <View style={styles.field}><Text style={styles.countryText}>+92</Text><TextInput keyboardType="phone-pad" placeholder="Phone number" placeholderTextColor={palette.subtle} value={phone} onChangeText={setPhone} style={styles.input} accessibilityLabel="Phone number" /></View>}
-          {mode === "signup" ? <View style={styles.field}><Ionicons name="gift-outline" size={17} color={palette.subtle} /><TextInput autoCapitalize="characters" placeholder="Referral code (optional)" placeholderTextColor={palette.subtle} value={referral} onChangeText={setReferral} style={styles.input} accessibilityLabel="Optional referral code" /></View> : <Pressable onPress={() => setMessage("Password reset is waiting for the secure email provider. No reset request was sent.")}><Text style={styles.forgot}>Forgot password?</Text></Pressable>}
+          {mode === "signup" && !verificationPending ? <View style={styles.field}><Ionicons name="gift-outline" size={17} color={palette.subtle} /><TextInput autoCapitalize="characters" placeholder="Referral code (optional)" placeholderTextColor={palette.subtle} value={referral} onChangeText={setReferral} style={styles.input} accessibilityLabel="Optional referral code" /></View> : null}
+          {mode === "login" && !verificationPending ? <Pressable onPress={() => setMessage("Password reset is waiting for the secure email provider. No reset request was sent.")}><Text style={styles.forgot}>Forgot password?</Text></Pressable> : null}
+          {verificationPending ? <View style={styles.field}><Ionicons name="keypad-outline" size={17} color={palette.subtle} /><TextInput autoCapitalize="none" keyboardType="number-pad" maxLength={6} placeholder="6-digit verification code" placeholderTextColor={palette.subtle} value={verificationCode} onChangeText={setVerificationCode} style={styles.input} accessibilityLabel="6-digit verification code" /></View> : null}
           {error ? <InfoNotice title="Check your details" tone="warning">{error}</InfoNotice> : null}
           {message ? <InfoNotice title="Preview status" tone="info">{message}</InfoNotice> : null}
-          <Pressable accessibilityRole="button" onPress={() => { void submit(); }} style={({ pressed }) => [styles.submit, pressed ? styles.pressed : null]}><Text style={styles.submitText}>{mode === "login" ? "Log in" : "Create account"}</Text><Ionicons name="arrow-forward-outline" size={18} color={palette.canvas} /></Pressable>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void (verificationPending ? verifySignupCode() : submit()); }} style={({ pressed }) => [styles.submit, pressed ? styles.pressed : null, busy ? styles.disabled : null]}><Text style={styles.submitText}>{verificationPending ? "Verify email" : mode === "login" ? "Log in" : "Create account"}</Text><Ionicons name="arrow-forward-outline" size={18} color={palette.canvas} /></Pressable>
           <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void continueWithWallet(); }} style={[styles.walletButton, busy ? styles.disabled : null]}><Ionicons name="wallet-outline" size={18} color={palette.gold} /><Text style={styles.walletText}>{connectedWalletAddress ? `${connectedWalletAddress.slice(0, 6)}…${connectedWalletAddress.slice(-4)}` : "Continue with wallet"}</Text></Pressable>
         </View>
 
