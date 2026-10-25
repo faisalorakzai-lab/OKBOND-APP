@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
-import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { AppScreen, InfoNotice } from "@/components/native-ui";
-import { OAUTH_PORTAL_URL, startOAuthLogin } from "@/constants/oauth";
 import { palette } from "@/lib/design";
 import { getReferralCode, normalizeReferralCode, setReferralCode } from "@/lib/referral";
 import * as Auth from "@/lib/_core/auth";
@@ -21,6 +21,7 @@ function isValidEmail(email: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
 
 export default function AuthScreen() {
   const { open, address: connectedAccountAddress } = useMultichainWallet();
+  const oauthParams = useLocalSearchParams<{ code?: string }>();
   const [mode, setMode] = useState<Mode>("login");
   const [method, setMethod] = useState<Method>("email");
   const [email, setEmail] = useState("");
@@ -36,6 +37,16 @@ export default function AuthScreen() {
   const [verificationCode, setVerificationCode] = useState("");
 
   useEffect(() => { void getReferralCode().then((value) => { if (value) setReferral(value); }); }, []);
+  useEffect(() => {
+    if (Platform.OS === "web" || !oauthParams.code) return;
+    let active = true;
+    void supabase.auth.exchangeCodeForSession(oauthParams.code).then(async ({ data, error: exchangeError }) => {
+      if (!active) return;
+      if (exchangeError) { setError(exchangeError.message); return; }
+      if (data.user) { await Auth.setUserInfo(toAuthUser(data.user)); router.replace("/(tabs)"); }
+    });
+    return () => { active = false; };
+  }, [oauthParams.code]);
   const connectedWalletAddress = connectedAccountAddress ?? walletAddress;
   const title = useMemo(() => mode === "login" ? "Welcome back" : "Create your account", [mode]);
   const switchMode = (next: Mode) => { setError(null); setMessage(null); setVerificationPending(false); setVerificationCode(""); setMode(next); };
@@ -109,8 +120,26 @@ export default function AuthScreen() {
   const continueWithGoogle = async () => {
     setError(null); setMessage(null); setBusy(true);
     try {
-      if (!OAUTH_PORTAL_URL) throw new Error("Google authentication is not configured for this build.");
-      await startOAuthLogin();
+      const redirectTo = Platform.OS === "web" && typeof window !== "undefined"
+        ? `${window.location.origin}/auth`
+        : Linking.createURL("/auth");
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo, skipBrowserRedirect: Platform.OS !== "web" },
+      });
+      if (oauthError) throw oauthError;
+      if (Platform.OS !== "web" && data.url) {
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+        if (result.type === "success") {
+          const callbackUrl = new URL(result.url);
+          const code = callbackUrl.searchParams.get("code");
+          if (code) {
+            const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            if (exchangeError) throw exchangeError;
+            if (sessionData.user) { await Auth.setUserInfo(toAuthUser(sessionData.user)); router.replace("/(tabs)"); }
+          }
+        }
+      }
     } catch (err) { setError(err instanceof Error ? err.message : "Google authentication is not configured."); }
     finally { setBusy(false); }
   };
