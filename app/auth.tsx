@@ -38,6 +38,16 @@ export default function AuthScreen() {
 
   useEffect(() => { void getReferralCode().then((value) => { if (value) setReferral(value); }); }, []);
   useEffect(() => {
+    let active = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active || !session?.user || (event !== "SIGNED_IN" && event !== "INITIAL_SESSION")) return;
+      void Auth.setUserInfo(toAuthUser(session.user)).then(() => {
+        if (active) router.replace("/(tabs)");
+      });
+    });
+    return () => { active = false; subscription.unsubscribe(); };
+  }, []);
+  useEffect(() => {
     if (Platform.OS === "web" || !oauthParams.code) return;
     let active = true;
     void supabase.auth.exchangeCodeForSession(oauthParams.code).then(async ({ data, error: exchangeError }) => {
